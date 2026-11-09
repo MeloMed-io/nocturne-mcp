@@ -1,0 +1,45 @@
+{
+  "name": "nocturne-mcp",
+  "version": "0.2.0",
+  "description": "Read-only MCP server for your Nocturne journal: mood timeline, entry list, songs, and (only if you turn it on) entry text",
+  "type": "module",
+  "bin": {
+    "nocturne-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/index.ts",
+    "start": "node dist/index.js",
+    "login": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/index.ts login",
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.ts",
+    "prepublishOnly": "npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "esbuild": "^0.25.12",
+    "zod": "^4.6.7"
+  },
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "nocturne",
+    "journal",
+    "claude"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "homepage": "https://melomed.io/developers/nocturne",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MeloMed-io/nocturne-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MeloMed-io/nocturne-mcp/issues"
+  }
+}
