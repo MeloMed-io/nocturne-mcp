@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { NocturneSource } from './api.ts';
 import { formatConnection, formatEntries, formatEntryText, formatMoods, formatSongs, type ToolText } from './format.ts';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.2.1';
 
 // AI-facing guidance.
 export const INSTRUCTIONS = [
