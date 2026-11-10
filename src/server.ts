@@ -1,11 +1,18 @@
 // The MCP server: tool definitions only. Separate from index.ts (the CLI) so
 // tests can build it against a fake API without touching stdio or disk.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import type { NocturneSource } from './api.ts';
 import { formatConnection, formatEntries, formatEntryText, formatMoods, formatSongs, type ToolText } from './format.ts';
 
-export const VERSION = '0.2.1';
+// The npm build bakes in package.json's version (build.mjs). Running from
+// source reads it directly, so serverInfo never drifts from the package.
+declare const __PKG_VERSION__: string | undefined;
+export const VERSION: string =
+  typeof __PKG_VERSION__ === 'string'
+    ? __PKG_VERSION__
+    : JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 // AI-facing guidance.
 export const INSTRUCTIONS = [
