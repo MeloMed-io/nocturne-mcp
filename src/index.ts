@@ -11,12 +11,13 @@
 //   nocturne-mcp                          run the MCP server on stdio
 //   nocturne-mcp --demo                   run it on a fictional journal, no account or network
 //                                         (or NOCTURNE_DEMO=1). Add --demo-raw to allow entry text.
+//   nocturne-mcp --help                   usage (--version prints the version)
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createInterface } from 'node:readline';
 import { hostname } from 'node:os';
 import { NocturneApi, NocturneError, signInWithPassword } from './api.ts';
 import { TOKEN_PATTERN, apiUrl, clearSession, readSession, supabaseConfig, writeSession, SESSION_FILE } from './config.ts';
-import { buildServer } from './server.ts';
+import { VERSION, buildServer } from './server.ts';
 import { DemoSource } from './demo/source.ts';
 
 const RAW = 'journals:read:raw';
@@ -33,14 +34,40 @@ function ask(question: string, hidden = false): Promise<string> {
       if (s.includes(question)) process.stdout.write(s);
     };
   }
-  return new Promise((resolve) =>
+  return new Promise((resolve) => {
+    let answered = false;
+    // stdin closed before an answer (piped or no terminal): say so instead of exiting silently.
+    rl.on('close', () => {
+      if (answered) return;
+      console.error('\nNo input. Run this in a terminal.');
+      process.exit(1);
+    });
     rl.question(question, (a) => {
+      answered = true;
       rl.close();
       if (hidden) process.stdout.write('\n');
       resolve(a.trim());
-    }),
-  );
+    });
+  });
 }
+
+const USAGE = `nocturne-mcp ${VERSION}, read-only MCP server for your Nocturne journal
+
+Usage:
+  nocturne-mcp                          run the MCP server on stdio (add it to your AI app, see below)
+  nocturne-mcp --demo                   run it on a fictional journal, no account or network (or NOCTURNE_DEMO=1)
+  nocturne-mcp --demo-raw               same, with full entry text allowed
+  nocturne-mcp login                    paste a connector token from the app
+  nocturne-mcp login --email            sign in with email and password instead
+  nocturne-mcp whoami                   show this connection and its permissions
+  nocturne-mcp grant journals:read:raw  turn on full entry text (email accounts, in a terminal)
+  nocturne-mcp revoke journals:read:raw turn it off again
+  nocturne-mcp logout                   revoke this connection and forget the token
+  nocturne-mcp --help                   show this help
+  nocturne-mcp --version                print the version
+
+Claude Code:  claude mcp add nocturne -s user -- npx -y nocturne-mcp
+Guide:        https://melomed.io/developers/nocturne`;
 
 const interactive = () => Boolean(process.stdin.isTTY && process.stdout.isTTY);
 
@@ -54,7 +81,7 @@ async function replaceSession(token: string, via: 'app' | 'email') {
 }
 
 async function loginWithToken() {
-  console.log(`In the Nocturne app, open ${APP_PATH} and create a connection, then copy its token.`);
+  console.log(`Open ${APP_PATH} and create a connection, then copy its token.`);
   const token = process.env.NOCTURNE_MCP_TOKEN || (await ask('Connector token: ', true));
   if (!TOKEN_PATTERN.test(token)) {
     console.error('That does not look like a Nocturne connector token (it starts with noct_mcp_).');
@@ -126,6 +153,15 @@ async function revokeRaw(scope: string | undefined) {
   console.log(`Full entry text is off. Scopes: ${scopes.join(', ')}.`);
 }
 
+/** Started by hand in a terminal: the server waits for an MCP client on stdin, so say what it is. */
+function terminalHint() {
+  if (!process.stdin.isTTY) return;
+  console.error(
+    `nocturne-mcp ${VERSION} is running and waiting for an MCP client on stdin. ` +
+      'Add it to your AI app instead of running it here (see --help). Ctrl+C to quit.',
+  );
+}
+
 function runDemo(raw: boolean) {
   const tz = localTz();
   const source = new DemoSource({ tz, raw });
@@ -140,6 +176,8 @@ async function main() {
   const args = process.argv.slice(2);
   const demoRaw = args.includes('--demo-raw');
   const demo = demoRaw || args.includes('--demo') || ['1', 'true'].includes(process.env.NOCTURNE_DEMO ?? '');
+  if (args.includes('--help') || args.includes('-h') || args[0] === 'help') return console.log(USAGE);
+  if (args.includes('--version') || args.includes('-v')) return console.log(VERSION);
   const [cmd, arg] = args.filter((a) => a !== '--demo' && a !== '--demo-raw');
   if (demo) {
     if (cmd !== undefined) {
@@ -162,14 +200,16 @@ async function main() {
       return revokeRaw(arg);
     case 'logout': {
       const s = readSession();
-      if (s) await api(s.token).revokeSelf().catch(() => {});
+      if (!s) return console.log('Not connected.');
+      await api(s.token).revokeSelf().catch(() => {});
       clearSession();
       return console.log('Disconnected. The token no longer works.');
     }
     case undefined:
+      terminalHint();
       return buildServer(() => api(), localTz()).connect(new StdioServerTransport());
     default:
-      console.error('Commands: login [--email] | whoami | grant journals:read:raw | revoke journals:read:raw | logout | --demo [--demo-raw]');
+      console.error(`Unknown argument "${cmd}".\n\n${USAGE}`);
       process.exit(1);
   }
 }

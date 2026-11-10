@@ -40,6 +40,7 @@ await build({
     js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);",
   },
   define: {
+    __PKG_VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version),
     __NOCTURNE_API_URL__: JSON.stringify(apiUrl),
     __NOCTURNE_SUPABASE_URL__: JSON.stringify(supabaseUrl),
     __NOCTURNE_SUPABASE_KEY__: JSON.stringify(anonKey),

@@ -1,6 +1,6 @@
 {
   "name": "nocturne-mcp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Read-only MCP server for your Nocturne journal: mood timeline, entry list, songs, and (only if you turn it on) entry text",
   "type": "module",
   "bin": {
